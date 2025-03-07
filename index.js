@@ -1,3 +1,6 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const session = require('express-session');
 const app = express();
@@ -11,7 +14,7 @@ const userModel = require('./models/userModel');
 //CONNECT TO MONGODB
 const mongoose = require('mongoose');
 function connectToDb() {
-    mongoose.connect('mongodb+srv://nikul2004parmar:Dg6m9NHWj3WN67Fy@cluster0.kdfxj.mongodb.net/facebook').then(() => {
+    mongoose.connect(process.env.DB_CONNECT).then(() => {
         console.log('connected to db')
     }).catch((e) => {
         console.log('error in db connection:', e)
