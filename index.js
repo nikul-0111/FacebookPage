@@ -1,9 +1,9 @@
 const express = require('express');
+const session = require('express-session');
 const app = express();
 const port = 3000;
 
 const path = require("path");
-
 
 //-----------------------------------MONGO DB CONNECT---------------------------------------
 const userModel = require('./models/userModel');
@@ -21,7 +21,6 @@ function connectToDb() {
 connectToDb();
 //------------------------------------------------------------------------------------------
 
-
 //----------------------------COMPULSORY IN ALL PROJECTS-----------------------------------------
 
 // Middleware to parse JSON and URL-encoded data
@@ -35,17 +34,28 @@ app.set("views", path.join(__dirname, "views"));
 // CSS and JS files
 app.use(express.static(path.join(__dirname, "public")));
 
+// Session middleware
+app.use(session({
+    secret: 'your_secret_key',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } // Set to true if using HTTPS
+}));
+
 //----------------------------------------------------------------------------------------------
 
-
-
-
+// Middleware to check if user is authenticated
+function isAuthenticated(req, res, next) {
+    if (req.session.user) {
+        return next();
+    } else {
+        res.redirect('/login');
+    }
+}
 
 //------------------------------------------------ALL ROUTES----------------------------------------------------------------------
 
-
 app.get('/', (req, res) => {
-    // res.send('Hello World!');
     res.render('start.ejs');
 });
 
@@ -58,13 +68,18 @@ app.get('/register', (req, res) => {
     res.render('register.ejs');
 });
 
+app.get('/home', isAuthenticated, (req, res) => {
+    res.render('homepage.ejs', { email: req.session.user.email, password: req.session.user.password });
+});
+
 // POST ROUTES
 app.post('/login', (req, res) => {
     const { email, password } = req.body;
     userModel.findOne({ email: email, password: password })
         .then(user => {
             if (user) {
-                res.status(200).render('homepage.ejs', { email, password });
+                req.session.user = user;
+                res.status(200).redirect('/home');
             } else {
                 res.status(401).send('Invalid email or password');
             }
@@ -83,20 +98,15 @@ app.post('/register', (req, res) => {
         password: password
     })
         .then(user => {
-            res.status(201).render('login.ejs',);
+            req.session.user = user;
+            res.status(201).redirect('/home');
         })
         .catch(err => {
             res.status(500).send('Error registering user');
         });
 });
 
-
 //---------------------------------------------------------------------------------------------------------------------------------
-
-
-
-
-
 
 app.listen(port, () => {
     console.log(`App listening on port ${port}`);
